@@ -1,1 +1,119 @@
 caca
+
+#Methode davaluation des politiques publiques
+#projet M2 Economie de la sante
+
+```{r}
+library(gitcreds)
+gitcreds_set()
+#install.packages("haven")
+library(haven)
+```
+
+#comparer territoires zero chomeurs avec ceux ou la politique nest pas mise en place
+```{r}
+#importation des donnees
+#donnees sur les individus
+individus <- read_stata("C:/Users/marga/Desktop/cours M2 economie de la sante/Methodes devaluation des politiques publiques/projet/individus")
+View(individus)
+colnames(individus)
+```
+```{r}
+#situation en 2017
+df <- read_dta("C:/Users/marga/Desktop/cours M2 economie de la sante/Methodes devaluation des politiques publiques/projet/g2017_situref.dta")
+View(df)
+colnames(df)
+
+#calendrier
+calendrier <- read_stata("C:/Users/marga/Desktop/cours M2 economie de la sante/Methodes devaluation des politiques publiques/projet/calendrier")
+View(calendrier)
+colnames(calendrier)
+```
+
+
+
+
+
+###################################
+#### TERRITOIRES ZERO CHOMEURS ####
+###################################
+
+
+```{r}
+# territoires ou la politique zero chomeur est mise en place
+ter_pol <- individus[individus$ETABDEP %in% c("14", "54", "13", "79", "59", "58", "75", "35", "63", "69"), ]
+View(ter_pol) #passe de 25164 obs a 6986
+
+# Fusionner les data frames df et individus sur la colonne IDENT (ajout du territoire pour pouvoir trier par departement)
+df <- merge(df, individus[, c("IDENT", "ETABDEP")], by = "IDENT", all.x = TRUE)
+# TRUE: on garde toutes les lignes de df même si certaines v
+
+df_pol <- df[df$ETABDEP %in% c("14", "54", "13", "79", "59", "58", "75", "35", "63", "69"), ]
+View(df_pol) #passe de 25164 obs a 6986
+
+##################################
+#### VISUALISATION ###############
+##################################
+
+#carte de france avec couleurs par departement
+
+install.packages("sf") 
+install.packages("ggplot2")
+install.packages("dplyr")
+install.packages("cartography")
+install.packages("rgeos")
+
+library(sf)        # Pour manipuler les données spatiales
+library(ggplot2)   # Pour créer la carte
+library(dplyr)     # Pour manipuler les données
+library(cartography)  # Pour les cartes en général
+
+# Charger les données géospatiales des départements français
+fr_dep <- st_read("https://raw.githubusercontent.com/gregoiredavid/france-geojson/master/departements-version-simplifiee.geojson")
+
+# Fusionner les données géographiques avec les taux de chômage
+fr_chomage <- fr_dep %>%
+  left_join(df_pol, by = c("code" = "ETABDEP"))
+
+# Carte thématique des taux de chômage
+ggplot(data = fr_chomage) +
+  geom_sf(aes(fill = DUREEREF), color = "white") +
+  scale_fill_viridis_c(option = "magma", name = "Taux de chômage (%)", na.value = "grey80") +
+  theme_minimal() +
+  labs(title = "Taux de chômage en France par département",
+       caption = "Source : Votre source de données") +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        panel.grid = element_blank())
+```
+
+#################################
+#### Comparaison departement ####
+#################################
+
+
+```{r}
+# departements ayant la politique zeros chomeurs
+dep_pol <- c("14", "54", "13", "79", "59", "58", "75", "35", "63", "69")
+
+# Ajouter une colonne pour indiquer si le département est dans la liste d'intérêt
+comp_chom <- fr_dep %>%
+  left_join(df, by = c("code" = "ETABDEP")) %>%
+  mutate(Highlight = ifelse(code %in% dep_pol, "Avec la politique", "Sans la politique"))
+```
+
+
+```{r}
+# Carte avec les départements d'intérêt mis en évidence
+ggplot(data = comp_chom) +
+  geom_sf(aes(fill = Highlight), color = "white") +  # Utilise une couleur différente pour la sélection
+  geom_sf_text(aes(label = code), size = 2) +        # Ajoute les codes des départements sur la carte
+  scale_fill_manual(values = c("Avec la politique" = "red", "Sans la politique" = "grey"), name = "Départements") +
+  theme_minimal() +
+  labs(title = "Les 10 départements avec la politique zéro chômeurs en France métropolitaine",
+       caption = "Source : données de chômage") +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        panel.grid = element_blank())
+```
+
