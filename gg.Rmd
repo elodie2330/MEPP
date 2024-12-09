@@ -1,37 +1,78 @@
+---
+title: "MEPP"
+author: "Marguax, Andria et Elodie"
+date: "09/12/2024"
+output:
+  html_document:
+    theme: journal
+    center: true
+    toc: true
+    toc_float: true
+    number_section: yes
+  pdf_document:
+    toc: yes
+    number_section: yes
+    highlight: tango
+    df_print: paged
+lang: fr
+editor_options:
+  chunk_output_type: console
+---
+
 caca
 
 #Methode davaluation des politiques publiques
 #projet M2 Economie de la sante
 
-```{r}
-library(gitcreds)
-gitcreds_set()
-#install.packages("haven")
+```{r options_chunk, echo = FALSE}
+
+knitr::opts_chunk$set(
+  echo = F, 
+  warning = F,
+  cache = T #permet de ne pas relancer un chunk si le code est le même
+)
+
+```
+
+```{r package}
+# install.packages("sf") 
+# install.packages("ggplot2")
+# install.packages("dplyr")
+# install.packages("cartography")
+# install.packages("rgeos")
+
 library(haven)
+library(sf)        # Pour manipuler les données spatiales
+library(ggplot2)   # Pour créer la carte
+library(dplyr)     # Pour manipuler les données
+library(cartography)  # Pour les cartes en général
 ```
 
 #comparer territoires zero chomeurs avec ceux ou la politique nest pas mise en place
 ```{r}
 #importation des donnees
 #donnees sur les individus
-individus <- read_stata("C:/Users/marga/Desktop/cours M2 economie de la sante/Methodes devaluation des politiques publiques/projet/individus")
+individus <- read_stata("C:/Users/efaye/OneDrive/Bureau/MEPP/Données Génération 2017/g2017_individus.dta")
+
+#individus <- read_stata("C:/Users/marga/Desktop/cours M2 economie de la sante/Methodes devaluation des politiques publiques/projet/individus")
+
 View(individus)
 colnames(individus)
 ```
+
 ```{r}
 #situation en 2017
-df <- read_dta("C:/Users/marga/Desktop/cours M2 economie de la sante/Methodes devaluation des politiques publiques/projet/g2017_situref.dta")
+df <- read_dta("C:/Users/efaye/OneDrive/Bureau/MEPP/Données Génération 2017/g2017_situref.dta")
+#df <- read_dta("C:/Users/marga/Desktop/cours M2 economie de la sante/Methodes devaluation des politiques publiques/projet/g2017_situref.dta")
 View(df)
 colnames(df)
 
 #calendrier
-calendrier <- read_stata("C:/Users/marga/Desktop/cours M2 economie de la sante/Methodes devaluation des politiques publiques/projet/calendrier")
+calendrier <- read_stata("C:/Users/efaye/OneDrive/Bureau/MEPP/Données Génération 2017/g2017_calendrier_activite.dta")
+#calendrier <- read_stata("C:/Users/marga/Desktop/cours M2 economie de la sante/Methodes devaluation des politiques publiques/projet/calendrier")
 View(calendrier)
 colnames(calendrier)
 ```
-
-
-
 
 
 ###################################
@@ -57,16 +98,8 @@ View(df_pol) #passe de 25164 obs a 6986
 
 #carte de france avec couleurs par departement
 
-install.packages("sf") 
-install.packages("ggplot2")
-install.packages("dplyr")
-install.packages("cartography")
-install.packages("rgeos")
 
-library(sf)        # Pour manipuler les données spatiales
-library(ggplot2)   # Pour créer la carte
-library(dplyr)     # Pour manipuler les données
-library(cartography)  # Pour les cartes en général
+
 
 # Charger les données géospatiales des départements français
 fr_dep <- st_read("https://raw.githubusercontent.com/gregoiredavid/france-geojson/master/departements-version-simplifiee.geojson")
