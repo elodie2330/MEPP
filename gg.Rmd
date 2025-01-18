@@ -1,37 +1,53 @@
 ---
 title: "MEPP"
-author: "Marguax, Andria et Elodie"
+subtitle: "Impact des territoires zéro chomeurs sur l'ensmble de la France"
+author: "Margaux, Andria et Elodie"
 date: "09/12/2024"
 output:
-  html_document:
-    theme: journal
-    center: true
+  prettydoc::html_pretty:
+    theme: leonids
+    number_section: true
+    css: styles.css
     toc: true
-    toc_float: true
-    number_section: yes
-  pdf_document:
-    toc: yes
-    number_section: yes
-    highlight: tango
+    toc_depth: 4
+  html_document:
+    toc: true
+    toc_depth: '4'
     df_print: paged
 lang: fr
 editor_options:
   chunk_output_type: console
 ---
 
-caca
+<style type="text/css">
+.main-container {
+  max-width: 1800px;
+  margin-left: auto;
+  margin-right: auto;
+    }
+p {
+    text-indent: 20px;
+    text-align: justify;
+  }
+</style>
+
+
+Dans ce rapport, nous avons choisi d'étudier l'impact de la politique zéro chomeur mise en place dans 10 départements le 24 novembre 2016 ([source](https://www.vie-publique.fr/eclairage/286834-territoires-zero-chomeur-de-longue-duree-vers-un-droit-lemploi)). 
+<!-- presenter le projet/origine de la politique/le choix des territoires ?  -->
+
 
 #Methode davaluation des politiques publiques
 #projet M2 Economie de la sante
 
 ```{r options_chunk, echo = FALSE}
-
 knitr::opts_chunk$set(
-  echo = F, 
-  warning = F,
-  cache = T #permet de ne pas relancer un chunk si le code est le même
-)
-
+  echo = FALSE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE, #permet de ne pas relancer un chunk si le code est le même
+  fig.align='center', 
+  fig.width=6, 
+  fig.height=5)
 ```
 
 ```{r package}
@@ -40,66 +56,60 @@ knitr::opts_chunk$set(
 # install.packages("dplyr")
 # install.packages("cartography")
 # install.packages("rgeos")
-
+library(tidyverse)
 library(haven)
 library(sf)        # Pour manipuler les données spatiales
 library(ggplot2)   # Pour créer la carte
 library(dplyr)     # Pour manipuler les données
 library(cartography)  # Pour les cartes en général
+library(prettydoc)
+library(paletteer)
+palette <- paletteer_dynamic("cartography::red.pal", 20)  
 ```
 
-#comparer territoires zero chomeurs avec ceux ou la politique nest pas mise en place
-```{r}
-#importation des donnees
-#donnees sur les individus
-individus <- read_stata("C:/Users/efaye/OneDrive/Bureau/MEPP/Données Génération 2017/g2017_individus.dta")
+# comparer territoires zero chomeurs avec ceux ou la politique nest pas mise en place
 
+```{r data}
+#donnees sur les individus
+#chemin elodie
+individus <- read_stata("C:/Users/efaye/OneDrive/Bureau/MEPP/Données Génération 2017/g2017_individus.dta")
+#chemin margaux 
 #individus <- read_stata("C:/Users/marga/Desktop/cours M2 economie de la sante/Methodes devaluation des politiques publiques/projet/individus")
 
-View(individus)
-colnames(individus)
-```
 
-```{r}
 #situation en 2017
+#chemin elodie
 df <- read_dta("C:/Users/efaye/OneDrive/Bureau/MEPP/Données Génération 2017/g2017_situref.dta")
+#chemin margaux
 #df <- read_dta("C:/Users/marga/Desktop/cours M2 economie de la sante/Methodes devaluation des politiques publiques/projet/g2017_situref.dta")
-View(df)
-colnames(df)
+
 
 #calendrier
+#chemin elodie
 calendrier <- read_stata("C:/Users/efaye/OneDrive/Bureau/MEPP/Données Génération 2017/g2017_calendrier_activite.dta")
+#chemin margaux
 #calendrier <- read_stata("C:/Users/marga/Desktop/cours M2 economie de la sante/Methodes devaluation des politiques publiques/projet/calendrier")
-View(calendrier)
-colnames(calendrier)
+
+suplab = c("Territoire sans", "Territoire avec")
+names(suplab) <- c("0", "1")
 ```
 
 
-###################################
-#### TERRITOIRES ZERO CHOMEURS ####
-###################################
+# TERRITOIRES ZERO CHOMEURS 
 
 
-```{r}
+```{r, include=FALSE}
 # territoires ou la politique zero chomeur est mise en place
 ter_pol <- individus[individus$ETABDEP %in% c("14", "54", "13", "79", "59", "58", "75", "35", "63", "69"), ]
 View(ter_pol) #passe de 25164 obs a 6986
+
+
 
 # Fusionner les data frames df et individus sur la colonne IDENT (ajout du territoire pour pouvoir trier par departement)
 df <- merge(df, individus[, c("IDENT", "ETABDEP")], by = "IDENT", all.x = TRUE)
 # TRUE: on garde toutes les lignes de df même si certaines v
 
 df_pol <- df[df$ETABDEP %in% c("14", "54", "13", "79", "59", "58", "75", "35", "63", "69"), ]
-View(df_pol) #passe de 25164 obs a 6986
-
-##################################
-#### VISUALISATION ###############
-##################################
-
-#carte de france avec couleurs par departement
-
-
-
 
 # Charger les données géospatiales des départements français
 fr_dep <- st_read("https://raw.githubusercontent.com/gregoiredavid/france-geojson/master/departements-version-simplifiee.geojson")
@@ -107,22 +117,25 @@ fr_dep <- st_read("https://raw.githubusercontent.com/gregoiredavid/france-geojso
 # Fusionner les données géographiques avec les taux de chômage
 fr_chomage <- fr_dep %>%
   left_join(df_pol, by = c("code" = "ETABDEP"))
+```
 
+
+```{r visualisation}
 # Carte thématique des taux de chômage
 ggplot(data = fr_chomage) +
   geom_sf(aes(fill = DUREEREF), color = "white") +
   scale_fill_viridis_c(option = "magma", name = "Taux de chômage (%)", na.value = "grey80") +
   theme_minimal() +
   labs(title = "Taux de chômage en France par département",
-       caption = "Source : Votre source de données") +
+       caption = "Source : Votre source de données",
+       x = "",
+       y = "") +
   theme(axis.text = element_blank(),
         axis.ticks = element_blank(),
         panel.grid = element_blank())
 ```
 
-#################################
-#### Comparaison departement ####
-#################################
+#
 
 
 ```{r}
@@ -144,9 +157,50 @@ ggplot(data = comp_chom) +
   scale_fill_manual(values = c("Avec la politique" = "red", "Sans la politique" = "grey"), name = "Départements") +
   theme_minimal() +
   labs(title = "Les 10 départements avec la politique zéro chômeurs en France métropolitaine",
-       caption = "Source : données de chômage") +
+       caption = "Source : données de chômage",
+       x = "", #supprime nom pour axe des abscisses
+       y = "") +
   theme(axis.text = element_blank(),
         axis.ticks = element_blank(),
         panel.grid = element_blank())
+```
+
+
+```{r niveau diplome}
+individus <- individus %>% 
+  mutate(diplome = case_when(
+    DIPSOR_CEREQ == "" ~ "aucun diplome",
+    DIPSOR_CEREQ == "02" ~ "CAP/BEP",
+    DIPSOR_CEREQ == "03" ~ "BAC PRO",
+    DIPSOR_CEREQ == "04" ~ "autre niveau 4",
+    DIPSOR_CEREQ == "05" ~ "BAC techno",
+    DIPSOR_CEREQ == "06" ~ "BAC general",
+    DIPSOR_CEREQ == "07" ~ "BTS/DUT",
+    DIPSOR_CEREQ == "08" ~ "autre bac +2",
+    DIPSOR_CEREQ == "09" ~ "BAC +2/3/4 santé sociale",
+    DIPSOR_CEREQ == 10 ~ "Licence pro",
+    DIPSOR_CEREQ == 11 ~ "Licence generale",
+    DIPSOR_CEREQ == 12 ~ "autre BAC +3/4",
+    DIPSOR_CEREQ == 13 ~ "Master",
+    DIPSOR_CEREQ == 14 ~ "autre BAC +5",
+    DIPSOR_CEREQ == 15 ~ "ecole commerce",
+    DIPSOR_CEREQ == 16 ~ "Ingenieur",
+    DIPSOR_CEREQ == 17 ~ "Doctorat santé",
+    DIPSOR_CEREQ == 18 ~ "Doctorat hors santé"), 
+    politique = case_when(
+      ETABDEP %in% c("14", "54", "13", "79", "59", "58", "75", "35", "63", "69") ~ 1,
+      T ~ 0))
+```
+```{r}
+individus %>% 
+  ggplot() +
+  aes(x = fct_infreq(diplome), fill = diplome)+
+  facet_grid(rows = vars(politique), labeller = labeller(politique = suplab))+
+  geom_bar()+
+  theme(legend.position = "none")+
+  xlab("")+
+  ylab("")+
+  # scale_fill_manual(palette)+
+  coord_flip()
 ```
 
